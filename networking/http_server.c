@@ -5,16 +5,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <ctype.h>
-
-#define MAX_BUFFER_SIZE 2048
-#define PORT 3001
-#define GET "GET"
-#define POST "POST"
-#define PUT "PUT"
-#define DELETE "DELETE"
-#define MAX_METHOD_SIZE 16
-#define MAX_URI_SIZE 256
-#define MAX_VERSION_SIZE 16
+#include "http_server.h"
 
 int is_valid_method(const char *method) {
     return strcmp(method, GET) == 0 ||
@@ -37,63 +28,8 @@ void ensure_no_overflow(char *input, size_t max_length) {
     input[max_length - 1] = '\0';  // Ensure null termination to avoid buffer overflow
 }
 
-void http_get(char* uri, int client_fd) {
-    if (strcmp(uri, "/") == 0) {
-        char* response = "HTTP/1.1 200 OK\nContent-Type: text/plain\n\nHello, GET!";
-        send(client_fd, response, strlen(response), 0);
-    } else {
-        char* response = "HTTP/1.1 404 Not Found\n";
-        send(client_fd, response, strlen(response), 0);
-    }
-}
-
-void http_post(char* uri, int client_fd) {
-    if (strcmp(uri, "/") == 0) {
-        char* response = "HTTP/1.1 200 OK\nContent-Type: text/plain\n\nHello, POST!";
-        send(client_fd, response, strlen(response), 0);
-    } else {
-        char* response = "HTTP/1.1 404 Not Found\n";
-        send(client_fd, response, strlen(response), 0);
-    }
-}
-
-void http_put(char* uri, int client_fd) {
-    if (strcmp(uri, "/") == 0) {
-        char* response = "HTTP/1.1 200 OK\nContent-Type: text/plain\n\nHello, PUT!";
-        send(client_fd, response, strlen(response), 0);
-    } else {
-        char* response = "HTTP/1.1 404 Not Found\n";
-        send(client_fd, response, strlen(response), 0);
-    }
-}
-
-void http_delete(char* uri, int client_fd) {
-    if (strcmp(uri, "/") == 0) {
-        char* response = "HTTP/1.1 200 OK\nContent-Type: text/plain\n\nHello, DELETE!";
-        send(client_fd, response, strlen(response), 0);
-    } else {
-        char* response = "HTTP/1.1 404 Not Found\n";
-        send(client_fd, response, strlen(response), 0);
-    }
-}
-
-void http_error(char* method, int client_fd) {
-    printf("Unknown HTTP method: %s\n", method);
-    char* response = "HTTP/1.1 400 Bad Request\n";
-    send(client_fd, response, strlen(response), 0);
-}
-
 void handle_request(char* method, char* uri, int client_fd) {
-    if (strcmp(method, GET) == 0)
-        http_get(uri, client_fd);
-    else if (strcmp(method, POST) == 0)
-        http_post(uri, client_fd);
-    else if (strcmp(method, PUT) == 0)
-        http_put(uri, client_fd);
-    else if (strcmp(method, DELETE) == 0)
-        http_delete(uri, client_fd);   
-    else
-        http_error(method, client_fd);
+    http_method(uri, client_fd, method);
 }
 
 void parse_body(char* buffer) {
@@ -175,7 +111,7 @@ int main(void) {
 
         // Validate the method and URI
         if (!is_valid_method(method) || !is_valid_uri(uri)) {
-            http_error(method, client_fd);
+            http_method(uri, client_fd, method);
             close(client_fd);
             continue;
         }
